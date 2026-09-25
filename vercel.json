@@ -1,1 +1,1 @@
-{"version":2}
+{"version":2,"functions":{"api/checkout.js":{"includeFiles":"public/catalogo/**"}}}
