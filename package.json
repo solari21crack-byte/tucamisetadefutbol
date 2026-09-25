@@ -1,1 +1,1 @@
-{"name":"tucamisetadefutbol","private":true,"version":"0.1.1","scripts":{"build":"node -e \"console.log(\u0027Static page ready\u0027)\""}}
+{"name":"tucamisetadefutbol","private":true,"version":"0.2.0","scripts":{"build":"node -e \"console.log(\u0027Catalog ready\u0027)\""}}
