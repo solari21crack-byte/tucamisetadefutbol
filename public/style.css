@@ -80,3 +80,14 @@ footer{align-items:center}
 .header-search button:hover{background:#064b9d}
 #camisetas{scroll-margin-top:190px}
 @media(max-width:520px){.header-search{margin-top:8px}.header-search input{font-size:14px;padding:10px}.header-search button{padding:10px 14px}#camisetas{scroll-margin-top:210px}}
+
+.account-actions{display:flex;align-items:center;gap:8px;flex:none}
+.account-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border-radius:6px;padding:8px 12px;font-weight:800;font-size:13px;white-space:nowrap}
+.login-button{border:1px solid #89d6ff;background:transparent;color:#fff}
+.login-button:hover{background:#ffffff20}
+.register-button{border:1px solid #11bfff;background:#0a78ff;color:#fff}
+.register-button:hover{background:#0862cc}
+.account-dialog{width:min(420px,calc(100% - 32px));border-radius:12px;padding:26px 30px 32px;color:#06152e}
+.account-dialog h2{font:800 26px Outfit,Arial,sans-serif;margin:4px 32px 16px 0}
+.account-dialog p{font-size:16px;line-height:1.6;margin:0;color:#3d4b5b}
+@media(max-width:520px){.account-actions{gap:6px}.account-actions button{padding:7px 9px;font-size:12px}.header .cart-button{margin-left:auto}}
