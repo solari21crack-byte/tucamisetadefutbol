@@ -70,3 +70,13 @@ footer{align-items:center}
 .footer-brand img{width:76px;height:76px;object-fit:contain;flex:none}
 .footer-brand .footer-wordmark{width:min(330px,calc(100vw - 150px));height:auto;max-height:32px;object-fit:contain;object-position:left center}
 @media(max-width:520px){.footer-brand img{width:64px;height:64px}.footer-brand .footer-wordmark{width:min(270px,calc(100vw - 128px));max-height:26px}}
+
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.header-search{order:2;display:flex;width:min(100%,720px);margin:0 auto 5px;min-width:0;background:#fff;border:2px solid #79c9ff;border-radius:7px;overflow:hidden}
+.header-search:focus-within{border-color:#08b9f5;box-shadow:0 0 0 3px #08b9f54d}
+.header-search input{flex:1;min-width:0;border:0;outline:0;background:#fff;color:#020d27;padding:11px 15px;font-size:15px}
+.header-search input::placeholder{color:#596a80}
+.header-search button{flex:none;border:0;background:#086df1;color:#fff;font-weight:800;padding:10px 22px}
+.header-search button:hover{background:#064b9d}
+#camisetas{scroll-margin-top:190px}
+@media(max-width:520px){.header-search{margin-top:8px}.header-search input{font-size:14px;padding:10px}.header-search button{padding:10px 14px}#camisetas{scroll-margin-top:210px}}
