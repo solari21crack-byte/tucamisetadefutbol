@@ -25,3 +25,26 @@
 .about{background:linear-gradient(135deg,#06152e,#0b315d)}
 footer{background:#030c1b}
 @media(max-width:520px){.brand{gap:7px}.brand img{width:52px;height:52px}.brand .brand-copy{font-size:14px}.brand .brand-copy small{font-size:9px}.header{padding:12px 4%}.cart-button{padding:9px 12px}}
+
+/* Identidad TCDF: azul marino, azul eléctrico, cian y blanco del escudo. */
+:root{--tcdf-navy:#020d27;--tcdf-blue:#086df1;--tcdf-cyan:#08b9f5;--tcdf-ice:#edf7ff;--tcdf-silver:#dce8f5;background:var(--tcdf-ice);color:var(--tcdf-navy)}
+.shipping{background:#020818}
+.header{background:linear-gradient(105deg,#020a1d,#062b67);border-bottom:2px solid var(--tcdf-blue)}
+.brand img{width:88px;height:72px;filter:drop-shadow(0 4px 12px #00adff55)}
+.brand .brand-copy,.header nav,.cart-button{color:#fff}
+.brand .brand-copy small,.header nav a:hover{color:#54cfff}
+.cart-button{border-color:#57c4ff;background:#ffffff12}
+.cart-button b{background:var(--tcdf-blue)}
+.hero{background:linear-gradient(135deg,#fff 0%,#e6f4ff 100%)}
+.hero-art{background:radial-gradient(circle at 75% 25%,#11ccfa 0%,#086df1 42%,#020d27 100%)}
+.eyebrow,.hero h1 em,.card-info span,.note,.cart-line button,.drawer-bottom #checkoutMessage{color:var(--tcdf-blue)}
+.cta{background:linear-gradient(90deg,#020d27,#086df1)}
+.cta:hover{background:linear-gradient(90deg,#086df1,#08b9f5)}
+.collection-cards a:nth-child(3n+1){background:#020d27}
+.collection-cards a:nth-child(3n+2){background:#086df1}
+.collection-cards a:nth-child(3n){background:#064b9d}
+.controls input:focus,.controls select:focus{border-color:var(--tcdf-blue)}
+.about{background:linear-gradient(135deg,#020d27,#073f87)}
+footer{background:#010716}
+.detail button{background:var(--tcdf-navy)}
+@media(max-width:520px){.brand img{width:62px;height:56px}.brand .brand-copy{font-size:14px}}
