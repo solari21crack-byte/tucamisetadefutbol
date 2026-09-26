@@ -48,3 +48,9 @@ footer{background:#030c1b}
 footer{background:#010716}
 .detail button{background:var(--tcdf-navy)}
 @media(max-width:520px){.brand img{width:62px;height:56px}.brand .brand-copy{font-size:14px}}
+
+.header{flex-wrap:wrap;column-gap:20px;row-gap:10px;padding-bottom:0}
+.header .collection-nav{order:3;display:flex;align-items:center;gap:5px;width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#3c9eff transparent;border-top:1px solid #ffffff30;white-space:nowrap}
+.collection-nav a{flex:none;color:#e8f4ff;font-size:14px;font-weight:700;padding:14px 13px;border-bottom:3px solid transparent}
+.collection-nav a:hover,.collection-nav a[aria-current="page"]{color:#fff;background:#ffffff1a;border-bottom-color:#08b9f5}
+@media(max-width:850px){.header .collection-nav{display:flex}.collection-nav a{padding:12px 10px}}
