@@ -95,3 +95,15 @@ footer{align-items:center}
 .header{transition:transform .45s ease,opacity .45s ease}
 .header.is-hidden{transform:translateY(-105%);opacity:0;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.header{transition:none}}
+
+.account-dialog{max-height:min(92vh,680px);overflow:auto}
+.account-dialog form{display:grid;gap:8px;margin-top:20px}
+.account-dialog label{font-size:14px;font-weight:800}
+.account-dialog input{width:100%;padding:12px 14px;border:1px solid #aabbd0;border-radius:6px;font-size:16px;margin-bottom:9px}
+.account-dialog input:focus{outline:2px solid #0a78ff;outline-offset:2px}
+.account-dialog #accountSubmit,.account-dialog #accountLogout{width:100%;border:0;background:#086df1;color:#fff;border-radius:6px;padding:13px;font-weight:800;margin:8px 0 4px}
+.account-dialog #accountSubmit:disabled{opacity:.6;cursor:wait}
+.account-dialog .account-text-button{display:block;border:0;background:none;color:#0755b6;font-size:14px;font-weight:700;text-align:left;padding:7px 0}
+.account-dialog #accountStatus{min-height:1.5em;color:#064b9d;font-size:14px;margin:14px 0 0}
+.account-dialog #accountStatus.error{color:#a51d26}
+.account-actions .register-button[hidden],.account-dialog [hidden]{display:none}

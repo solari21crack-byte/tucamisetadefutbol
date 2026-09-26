@@ -23,7 +23,57 @@ function matches(x){const s=state.search.trim().toLowerCase();return s.split(/\s
 function render(){let list=state.items.filter(x=>(!state.category||x.category===state.category)&&matches(x));if(state.sort!=='recent')list.sort((a,b)=>state.sort==='asc'?a.variants[0].price-b.variants[0].price:b.variants[0].price-a.variants[0].price);const pages=Math.max(1,Math.ceil(list.length/24));state.page=Math.min(state.page,pages);$('catalogStatus').textContent=`${list.length.toLocaleString('es-ES')} modelos · Vista previa del catálogo`;$('grid').innerHTML=list.slice((state.page-1)*24,state.page*24).map(x=>`<button class="card" data-id="${x.id}"><div class="card-image"><img src="${escapeHtml(x.image)}" alt="${escapeHtml(x.title)}" loading="lazy"></div><div class="card-info"><strong>${escapeHtml(x.title)}</strong><span>Desde ${euro(Math.min(...x.variants.map(v=>v.price)))}</span></div></button>`).join('')||'<p>No encontramos productos con esa búsqueda.</p>';$('pageIndicator').textContent=`${state.page} / ${pages}`;$('prev').disabled=state.page===1;$('next').disabled=state.page===pages}
 $('search').addEventListener('input',e=>{clearTimeout(delay);$('headerSearch').value=e.target.value;delay=setTimeout(()=>{state.search=e.target.value;state.page=1;render()},180)});
 $('headerSearchForm').addEventListener('submit',e=>{e.preventDefault();clearTimeout(delay);state.search=$('headerSearch').value.trim();$('search').value=state.search;selectCategory('');$('camisetas').scrollIntoView({behavior:'smooth',block:'start'})});
-document.querySelectorAll('[data-account]').forEach(button=>button.addEventListener('click',()=>{$('accountDialogTitle').textContent=button.dataset.account==='login'?'Iniciar sesión':'Crear una cuenta';$('accountDialog').showModal()}));
+const account={configured:null,user:null,mode:'login'};
+async function authRequest(body){const response=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),credentials:'same-origin'});const data=await response.json();if(!response.ok)throw Error(data.error||'No se pudo completar la solicitud.');return data}
+function accountMessage(message,error=false){$('accountStatus').textContent=message;$('accountStatus').classList.toggle('error',error)}
+function updateAccountUI(){
+  const signedIn=!!account.user&&account.mode!=='reset';
+  document.querySelector('.login-button span').textContent=account.user?'Mi cuenta':'Entrar';
+  document.querySelector('.register-button').hidden=!!account.user;
+  $('accountSignedIn').hidden=!signedIn;
+  $('accountForm').hidden=signedIn||account.configured===false;
+  $('accountSwitch').hidden=signedIn||account.configured===false||account.mode==='recover'||account.mode==='reset';
+  $('accountRecover').hidden=signedIn||account.configured===false||account.mode!=='login';
+  $('accountEmailDisplay').textContent=signedIn?account.user.email:'';
+  $('accountDialogTitle').textContent=signedIn?'Mi cuenta':({login:'Iniciar sesión',register:'Crear una cuenta',recover:'Recuperar contraseña',reset:'Nueva contraseña'})[account.mode];
+  $('accountIntro').textContent=signedIn?'Has iniciado sesión.':account.configured===false?'El acceso de usuarios todavía no está configurado.':({login:'Entra con tu correo y contraseña.',register:'Crea tu cuenta con un correo y una contraseña de al menos 8 caracteres.',recover:'Te enviaremos un enlace para cambiar la contraseña.',reset:'Elige una contraseña nueva de al menos 8 caracteres.'})[account.mode];
+  $('accountSubmit').textContent=({login:'Entrar',register:'Registrarse',recover:'Enviar enlace',reset:'Guardar contraseña'})[account.mode];
+  $('accountSwitch').textContent=account.mode==='login'?'Crear una cuenta':'Ya tengo una cuenta';
+  $('accountEmail').hidden=account.mode==='reset';
+  $('accountEmail').previousElementSibling.hidden=account.mode==='reset';
+  $('accountEmail').required=account.mode!=='reset';
+  $('accountPassword').hidden=account.mode==='recover';
+  $('accountPassword').previousElementSibling.hidden=account.mode==='recover';
+  $('accountPassword').required=account.mode!=='recover';
+  $('accountPassword').autocomplete=account.mode==='register'||account.mode==='reset'?'new-password':'current-password';
+}
+function setAccountMode(mode){account.mode=mode;$('accountPassword').value='';accountMessage('');updateAccountUI()}
+async function loadAccount(){try{const response=await fetch('/api/auth',{cache:'no-store'});const data=await response.json();account.configured=data.configured!==false;account.user=data.user||null}catch{account.configured=false}updateAccountUI()}
+document.querySelectorAll('[data-account]').forEach(button=>button.addEventListener('click',async()=>{
+  if(account.configured===null)await loadAccount();
+  setAccountMode(button.dataset.account==='register'?'register':'login');
+  $('accountDialog').showModal();
+}));
+$('accountSwitch').addEventListener('click',()=>setAccountMode(account.mode==='login'?'register':'login'));
+$('accountRecover').addEventListener('click',()=>setAccountMode('recover'));
+$('accountForm').addEventListener('submit',async e=>{
+  e.preventDefault();const button=$('accountSubmit');button.disabled=true;accountMessage('Un momento…');
+  try{
+    const data=await authRequest({action:account.mode==='reset'?'update-password':account.mode,email:$('accountEmail').value,password:$('accountPassword').value});
+    if(data.user){account.user=data.user;updateAccountUI();accountMessage(account.mode==='reset'?'Contraseña actualizada.':'Sesión iniciada.');if(account.mode==='login'||account.mode==='register')$('accountDialog').close()}
+    else if(account.mode==='register'){setAccountMode('login');accountMessage(data.message||'Revisa tu correo para confirmar la cuenta.')}
+    else if(account.mode==='recover'){setAccountMode('login');accountMessage(data.message||'Revisa tu correo electrónico.')}
+    else if(account.mode==='reset'){setAccountMode('login');accountMessage('Contraseña actualizada. Ya puedes usar tu cuenta.')}
+  }catch(error){accountMessage(error.message,true)}finally{button.disabled=false}
+});
+$('accountLogout').addEventListener('click',async()=>{try{await authRequest({action:'logout'});account.user=null;setAccountMode('login');accountMessage('Sesión cerrada.')}catch(error){accountMessage(error.message,true)}});
+async function acceptEmailLink(){
+  const params=new URLSearchParams(location.hash.slice(1));const access_token=params.get('access_token'),refresh_token=params.get('refresh_token');
+  if(!access_token||!refresh_token)return;
+  history.replaceState(null,'',location.pathname+location.search);
+  try{const data=await authRequest({action:'session',access_token,refresh_token});account.configured=true;account.user=data.user;setAccountMode(params.get('type')==='recovery'?'reset':'login');$('accountDialog').showModal();accountMessage(account.mode==='reset'?'Introduce tu nueva contraseña.':'Correo confirmado. Ya has iniciado sesión.')}catch(error){accountMessage(error.message,true);$('accountDialog').showModal()}
+}
+loadAccount().then(acceptEmailLink);
 $('closeAccount').addEventListener('click',()=>$('accountDialog').close());
 $('accountDialog').addEventListener('click',e=>{if(e.target===$('accountDialog'))$('accountDialog').close()});
 $('category').addEventListener('change',e=>selectCategory(e.target.value));
