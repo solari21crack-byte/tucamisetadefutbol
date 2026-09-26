@@ -107,3 +107,5 @@ footer{align-items:center}
 .account-dialog #accountStatus{min-height:1.5em;color:#064b9d;font-size:14px;margin:14px 0 0}
 .account-dialog #accountStatus.error{color:#a51d26}
 .account-actions .register-button[hidden],.account-dialog [hidden]{display:none}
+.payment-notice{padding:16px 24px;background:#e6f4ff;color:#063263;text-align:center;font-weight:700;font-size:16px}
+.payment-notice[hidden]{display:none}

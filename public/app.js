@@ -105,4 +105,24 @@ $('payButton').addEventListener('click',async()=>{
 async function loadPaymentStatus(){try{const r=await fetch('/api/store-status',{cache:'no-store'});if(!r.ok)throw Error();state.paymentEnabled=(await r.json()).checkoutEnabled===true}catch{state.paymentEnabled=false}renderCart()}
 loadPaymentStatus();
 
+async function showPaymentResult(){
+  const params=new URLSearchParams(location.search);
+  const result=params.get('pago');
+  if(result!=='recibido'&&result!=='cancelado')return;
+  const notice=$('paymentNotice');
+  notice.hidden=false;
+  notice.textContent=result==='cancelado'?'Pago cancelado. No se ha realizado ningún cargo.':'Comprobando el pago…';
+  if(result==='recibido'){
+    try{
+      const id=params.get('session_id')||'';
+      const response=await fetch('/api/payment-status?session_id='+encodeURIComponent(id),{cache:'no-store'});
+      if(!response.ok)throw Error();
+      const status=await response.json();
+      notice.textContent=status.paid?'Pago confirmado. Estamos registrando tu pedido.':status.pending?'El pago está pendiente de confirmación.':'El pago aún no está confirmado.';
+    }catch{notice.textContent='No pudimos comprobar el pago. Contacta con la tienda antes de repetirlo.'}
+  }
+  history.replaceState(null,'',location.pathname+location.hash);
+}
+showPaymentResult();
+
 load();

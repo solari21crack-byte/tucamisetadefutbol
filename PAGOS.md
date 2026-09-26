@@ -1,6 +1,7 @@
 # Stripe Checkout
 
 La tienda recibe pagos en euros con Stripe Checkout. El servidor comprueba precio, variante y disponibilidad usando el catálogo incluido en el despliegue; no acepta precios enviados por el navegador. El webhook con firma de Stripe registra pedidos pagados en Supabase. Las claves privadas solo se configuran en Vercel, nunca en el repositorio.
+Tras volver de Stripe, la página consulta la sesión directamente en Stripe antes de mostrar una confirmación. El registro del pedido sigue dependiendo del webhook firmado.
 
 ## Activación
 
