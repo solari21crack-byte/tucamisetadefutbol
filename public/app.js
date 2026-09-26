@@ -2,6 +2,18 @@ const euro = cents => new Intl.NumberFormat('es-ES',{style:'currency',currency:'
 const $ = id => document.getElementById(id);
 const state = {items:[],search:'',category:'',sort:'recent',page:1,cart:[],paymentEnabled:false};
 const escapeHtml = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const siteHeader=document.querySelector('.header');
+let previousScrollY=window.scrollY;
+siteHeader.addEventListener('focusin',()=>siteHeader.classList.remove('is-hidden'));
+window.addEventListener('scroll',()=>{
+  const currentScrollY=window.scrollY;
+  if(currentScrollY<80||siteHeader.contains(document.activeElement)){
+    siteHeader.classList.remove('is-hidden');previousScrollY=currentScrollY;
+  }else if(Math.abs(currentScrollY-previousScrollY)>4){
+    siteHeader.classList.toggle('is-hidden',currentScrollY>previousScrollY);
+    previousScrollY=currentScrollY;
+  }
+},{passive:true});
 let delay;
 async function load(){try{const files=Array.from({length:17},(_,i)=>'/catalogo/'+String(i+1).padStart(2,'0')+'.json');const responses=await Promise.all(files.map(f=>fetch(f)));if(responses.some(r=>!r.ok))throw Error();state.items=(await Promise.all(responses.map(r=>r.json()))).flat();renderCategoryCards();renderCollectionNav();renderCart();const cats=[...new Set(state.items.map(x=>x.category))].sort((a,b)=>a.localeCompare(b,'es'));$('category').innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c==='Todos los productos'?'Otros':c)}</option>`).join('');render()}catch{$('catalogStatus').textContent='No se pudo cargar el catálogo. Vuelve a intentarlo.'}}
 function renderCollectionNav(){const names=[...new Set(state.items.map(x=>x.category))];const preferred=['La Liga','Premier League','Serie A','Bundesliga','Ligue 1','Mundial 2026','Retro','Niños','Entrenamiento','NBA','Todos los productos'];const categories=[...preferred.filter(x=>names.includes(x)),...names.filter(x=>!preferred.includes(x)).sort((a,b)=>a.localeCompare(b,'es'))];$('collectionNav').innerHTML=[['','Todas'],...categories.map(name=>[name,name==='Todos los productos'?'Otros':name])].map(([name,label])=>`<a href="#camisetas" data-category="${escapeHtml(name)}">${escapeHtml(label)}</a>`).join('');updateCollectionNav()}

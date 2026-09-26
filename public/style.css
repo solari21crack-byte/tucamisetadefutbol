@@ -91,3 +91,7 @@ footer{align-items:center}
 .account-dialog h2{font:800 26px Outfit,Arial,sans-serif;margin:4px 32px 16px 0}
 .account-dialog p{font-size:16px;line-height:1.6;margin:0;color:#3d4b5b}
 @media(max-width:520px){.account-actions{gap:6px}.account-actions button{padding:7px 9px;font-size:12px}.header .cart-button{margin-left:auto}}
+
+.header{transition:transform .45s ease,opacity .45s ease}
+.header.is-hidden{transform:translateY(-105%);opacity:0;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.header{transition:none}}
