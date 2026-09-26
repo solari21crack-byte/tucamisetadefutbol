@@ -58,11 +58,11 @@ footer{background:#010716}
 /* El rótulo reproduce el acabado del escudo a escala de cabecera. */
 .header .brand{flex:1 1 auto;min-width:0;gap:14px}
 .header .brand img{flex:none}
-.header .brand .brand-wordmark{width:min(420px,calc(100% - 102px));height:auto;max-height:40px;object-fit:contain;object-position:left center;filter:none}
+.header .brand .brand-wordmark{width:min(350px,calc(100% - 102px));height:auto;max-height:34px;object-fit:contain;object-position:left center;filter:none}
 .header .main-links{flex:none;gap:19px}
 .header .cart-button{flex:none}
 @media(max-width:1100px){.header .main-links{display:none}}
-@media(max-width:700px){.header{column-gap:8px}.header .brand{gap:6px}.header .brand img{width:54px;height:52px}.header .brand .brand-wordmark{width:min(310px,calc(100% - 60px));height:auto;max-height:29px}.header .cart-button{padding:7px 9px;font-size:12px}}
+@media(max-width:700px){.header{column-gap:8px}.header .brand{gap:6px}.header .brand img{width:54px;height:52px}.header .brand .brand-wordmark{width:min(260px,calc(100% - 60px));height:auto;max-height:25px}.header .cart-button{padding:7px 9px;font-size:12px}}
 @media(max-width:520px){.header .brand{flex-basis:100%}.header .cart-button{margin-left:auto}}
 
 footer{align-items:center}
