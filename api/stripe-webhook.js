@@ -45,8 +45,15 @@ module.exports = async function webhook(req,res) {
         ...(supabaseKey.startsWith('sb_secret_') ? {} : {Authorization:`Bearer ${supabaseKey}`}),
         'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(record)
     });
-    if (!db.ok) return res.status(503).json({error:'No se pudo registrar el pedido'});
+    if (!db.ok) {
+      const failure = await db.json().catch(() => null);
+      console.error('Order write rejected', db.status, failure?.code || failure?.error || 'unknown');
+      return res.status(503).json({error:'No se pudo registrar el pedido'});
+    }
     return res.status(200).json({received:true});
-  } catch { return res.status(503).json({error:'No se pudo registrar el pedido'}); }
+  } catch (error) {
+    console.error('Order write request failed', error?.name || 'unknown');
+    return res.status(503).json({error:'No se pudo registrar el pedido'});
+  }
 };
 module.exports.verify = verify;
