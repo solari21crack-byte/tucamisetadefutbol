@@ -6,7 +6,7 @@ Tras volver de Stripe, la página consulta la sesión directamente en Stripe ant
 ## Activación
 
 1. Ejecutar `supabase/orders.sql` en el editor SQL de Supabase.
-2. En Vercel, configurar las variables de `.env.example` para producción con valores reales. `SHIPPING_EUR_CENTS` es el coste fijo de envío a España expresado en céntimos. `PUBLIC_BASE_URL` debe coincidir exactamente con el dominio público, sin `/` final.
+2. En Vercel, configurar las variables de `.env.example` para producción con valores reales. Usar una clave secreta de Supabase `sb_secret_...` en `SUPABASE_SECRET_KEY`, solo en el servidor. Se admite temporalmente la clave antigua en `SUPABASE_SERVICE_ROLE_KEY`. `SHIPPING_EUR_CENTS` es el coste fijo de envío a España expresado en céntimos. `PUBLIC_BASE_URL` debe coincidir exactamente con el dominio público, sin `/` final.
 3. Crear en Stripe un endpoint de webhook `https://tucamisetadefutbol.vercel.app/api/stripe-webhook` (o el dominio final) para `checkout.session.completed` y `checkout.session.async_payment_succeeded`. Guardar su secreto `whsec_...` en `STRIPE_WEBHOOK_SECRET` de Vercel.
 4. Verificar licencia para vender cada artículo, inventario, precios finales en EUR, impuestos aplicables, información de envío y política de devoluciones. Marcar `active: true` únicamente los productos revisados en los ficheros `public/catalogo/*.json`.
 5. Probar un pedido en modo de prueba Stripe y comprobar su fila en `public.orders`. Después introducir las claves de producción, establecer `STORE_CHECKOUT_ENABLED=true` y desplegar de nuevo.

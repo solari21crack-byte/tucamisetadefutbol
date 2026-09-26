@@ -5,7 +5,7 @@ const {randomUUID} = require('node:crypto');
 const json = (res, code, data) => res.status(code).setHeader('Cache-Control', 'no-store').json(data);
 const ready = () => process.env.STORE_CHECKOUT_ENABLED === 'true' &&
   !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET &&
-  !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY &&
+  !!process.env.SUPABASE_URL && !!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) &&
   /^\d+$/.test(process.env.SHIPPING_EUR_CENTS || '') &&
   /^https:\/\/[^/]+$/.test(process.env.PUBLIC_BASE_URL || '');
 

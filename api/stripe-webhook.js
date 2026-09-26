@@ -28,7 +28,8 @@ module.exports = async function webhook(req,res) {
   const session = event.data?.object;
   if (!session?.id || session.payment_status !== 'paid' || session.currency !== 'eur' ||
       !Number.isSafeInteger(session.amount_total)) return res.status(200).json({received:true});
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).end();
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!process.env.SUPABASE_URL || !supabaseKey) return res.status(503).end();
   const record = {
     stripe_session_id:session.id,
     status:'paid',
@@ -40,8 +41,8 @@ module.exports = async function webhook(req,res) {
   };
   try {
     const db = await fetch(`${process.env.SUPABASE_URL}/rest/v1/orders?on_conflict=stripe_session_id`,{
-      method:'POST',headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,
-        Authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      method:'POST',headers:{apikey:supabaseKey,
+        ...(supabaseKey.startsWith('sb_secret_') ? {} : {Authorization:`Bearer ${supabaseKey}`}),
         'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(record)
     });
     if (!db.ok) return res.status(503).json({error:'No se pudo registrar el pedido'});
