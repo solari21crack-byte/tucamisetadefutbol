@@ -37,7 +37,7 @@ module.exports = async function checkout(req, res) {
   params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', 'eur');
   params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', process.env.SHIPPING_EUR_CENTS);
-  params.set('shipping_options[0][shipping_rate_data][display_name]', 'Envío estándar');
+  params.set('shipping_options[0][shipping_rate_data][display_name]', 'Envío estándar · 7 días laborables');
   const resolved = [];
   for (let i = 0; i < items.length; i++) {
     const item = items[i];

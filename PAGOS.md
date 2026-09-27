@@ -11,4 +11,6 @@ Tras volver de Stripe, la página consulta la sesión directamente en Stripe ant
 4. Verificar licencia para vender cada artículo, inventario, precios finales en EUR, impuestos aplicables, información de envío y política de devoluciones. Marcar `active: true` únicamente los productos revisados en los ficheros `public/catalogo/*.json`.
 5. Probar un pedido en modo de prueba Stripe y comprobar su fila en `public.orders`. Después introducir las claves de producción, establecer `STORE_CHECKOUT_ENABLED=true` y desplegar de nuevo.
 
+Alcance comercial indicado: camisetas y pantalones con disponibilidad, entrega estimada de 7 días laborables a España y envío fijo de 1 €. Antes de abrir cobros, confirmar los precios finales y las condiciones de devolución; excluir de la venta los artículos que no sean camisetas o pantalones. Los datos del proveedor son una vista previa sin sincronización de inventario.
+
 El navegador nunca lee el secreto de Stripe ni la clave de servicio de Supabase. La página de éxito no da el pedido por pagado; la fuente de verdad es el webhook firmado.
