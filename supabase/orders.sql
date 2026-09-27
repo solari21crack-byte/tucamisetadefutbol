@@ -11,3 +11,4 @@ create table if not exists public.orders (
 );
 alter table public.orders enable row level security;
 -- El navegador no tiene política de acceso a pedidos. Solo escribe el servidor con service role.
+grant select, insert, update on public.orders to service_role;
