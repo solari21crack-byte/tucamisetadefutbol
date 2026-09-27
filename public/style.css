@@ -122,3 +122,9 @@ footer{align-items:center}
 .cart-returns{font-size:14px;line-height:1.5;color:#33445a}
 .cart-returns a:hover{color:#064b9d}
 @media(max-width:700px){.returns-grid{grid-template-columns:1fr}.returns{padding:60px 6%;scroll-margin-top:215px}footer{flex-wrap:wrap}.footer-info{align-items:flex-start;text-align:left}}
+
+/* El buscador ocupa el espacio entre el rótulo y el acceso a la cuenta. */
+.header .brand{flex:0 1 390px}
+.header-search{order:0;flex:1 1 270px;width:auto;max-width:520px;margin:0}
+@media(max-width:1100px){.header .brand{flex:1 1 auto}.header-search{order:2;flex:1 1 100%;width:100%;max-width:none;margin:0 auto 5px}}
+@media(max-width:520px){.header .brand{flex-basis:100%}}
