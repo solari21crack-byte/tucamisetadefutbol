@@ -1,6 +1,6 @@
 const euro = cents => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(cents/100);
 const $ = id => document.getElementById(id);
-const state = {items:[],search:'',category:'',sort:'recent',page:1,cart:[],paymentEnabled:false};
+const state = {items:[],search:'',category:'',sort:'recent',page:1,cart:[],paymentEnabled:false,shippingCents:null};
 const escapeHtml = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const siteHeader=document.querySelector('.header');
 let previousScrollY=window.scrollY;
@@ -20,7 +20,7 @@ function renderCollectionNav(){const names=[...new Set(state.items.map(x=>x.cate
 function updateCollectionNav(){$('collectionNav').querySelectorAll('[data-category]').forEach(link=>{if(link.dataset.category===state.category)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')})}
 function selectCategory(name){state.category=name;$('category').value=name;state.page=1;updateCollectionNav();render()}
 function matches(x){const s=state.search.trim().toLowerCase();return s.split(/\s+/).every(t=>x.title.toLowerCase().includes(t))}
-function render(){let list=state.items.filter(x=>(!state.category||x.category===state.category)&&matches(x));if(state.sort!=='recent')list.sort((a,b)=>state.sort==='asc'?a.variants[0].price-b.variants[0].price:b.variants[0].price-a.variants[0].price);const pages=Math.max(1,Math.ceil(list.length/24));state.page=Math.min(state.page,pages);$('catalogStatus').textContent=`${list.length.toLocaleString('es-ES')} modelos · Vista previa del catálogo`;$('grid').innerHTML=list.slice((state.page-1)*24,state.page*24).map(x=>`<button class="card" data-id="${x.id}"><div class="card-image"><img src="${escapeHtml(x.image)}" alt="${escapeHtml(x.title)}" loading="lazy"></div><div class="card-info"><strong>${escapeHtml(x.title)}</strong><span>Desde ${euro(Math.min(...x.variants.map(v=>v.price)))}</span></div></button>`).join('')||'<p>No encontramos productos con esa búsqueda.</p>';$('pageIndicator').textContent=`${state.page} / ${pages}`;$('prev').disabled=state.page===1;$('next').disabled=state.page===pages}
+function render(){let list=state.items.filter(x=>(!state.category||x.category===state.category)&&matches(x));if(state.sort!=='recent')list.sort((a,b)=>state.sort==='asc'?a.variants[0].price-b.variants[0].price:b.variants[0].price-a.variants[0].price);const pages=Math.max(1,Math.ceil(list.length/24));state.page=Math.min(state.page,pages);$('catalogStatus').textContent=`${list.length.toLocaleString('es-ES')} modelos${state.paymentEnabled?'':' · Vista previa del catálogo'}`;$('grid').innerHTML=list.slice((state.page-1)*24,state.page*24).map(x=>`<button class="card" data-id="${x.id}"><div class="card-image"><img src="${escapeHtml(x.image)}" alt="${escapeHtml(x.title)}" loading="lazy"></div><div class="card-info"><strong>${escapeHtml(x.title)}</strong><span>Desde ${euro(Math.min(...x.variants.map(v=>v.price)))}</span></div></button>`).join('')||'<p>No encontramos productos con esa búsqueda.</p>';$('pageIndicator').textContent=`${state.page} / ${pages}`;$('prev').disabled=state.page===1;$('next').disabled=state.page===pages}
 $('search').addEventListener('input',e=>{clearTimeout(delay);$('headerSearch').value=e.target.value;delay=setTimeout(()=>{state.search=e.target.value;state.page=1;render()},180)});
 $('headerSearchForm').addEventListener('submit',e=>{e.preventDefault();clearTimeout(delay);state.search=$('headerSearch').value.trim();$('search').value=state.search;selectCategory('');$('camisetas').scrollIntoView({behavior:'smooth',block:'start'})});
 const account={configured:null,user:null,mode:'login'};
@@ -91,7 +91,8 @@ function renderCart(){
   const lines=state.cart.map((item,i)=>{const p=state.items.find(x=>x.id===item.productId),v=p?.variants.find(x=>x.id===item.variantId);return p&&v?{i,item,p,v}:null}).filter(Boolean);
   $('cartItems').innerHTML=lines.map(({i,item,p,v})=>`<div class="cart-line"><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(v.title)} · ${euro(v.price)} × ${item.quantity}</small><button type="button" data-remove="${i}" aria-label="Quitar ${escapeHtml(p.title)}">Quitar</button></div>`).join('')||'<p>Tu cesta está vacía.</p>';
   $('cartCount').textContent=lines.reduce((sum,x)=>sum+x.item.quantity,0);
-  $('total').textContent='Productos: '+euro(lines.reduce((sum,x)=>sum+x.v.price*x.item.quantity,0))+' · Envío calculado al pagar';
+  const subtotal=lines.reduce((sum,x)=>sum+x.v.price*x.item.quantity,0);
+  $('total').textContent='Productos: '+euro(subtotal)+(lines.length && state.shippingCents!==null?' · Envío a España: '+euro(state.shippingCents)+' · Total: '+euro(subtotal+state.shippingCents):' · Envío confirmado al pagar');
   const allowed=state.paymentEnabled&&lines.length>0&&lines.every(({p,v})=>p.active&&v.available);
   $('payButton').disabled=!allowed;
   $('payButton').textContent=state.paymentEnabled?'Ir al pago seguro':'Pagos disponibles próximamente';
@@ -102,7 +103,7 @@ $('payButton').addEventListener('click',async()=>{
   try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.cart})});const data=await r.json();if(!r.ok)throw Error(data.error||'No se pudo iniciar el pago');const url=new URL(data.url);if(url.protocol!=='https:'||url.hostname!=='checkout.stripe.com')throw Error('Respuesta de pago no válida');location.assign(url.href)}
   catch(e){$('checkoutMessage').textContent=e.message;renderCart()}
 });
-async function loadPaymentStatus(){try{const r=await fetch('/api/store-status',{cache:'no-store'});if(!r.ok)throw Error();state.paymentEnabled=(await r.json()).checkoutEnabled===true}catch{state.paymentEnabled=false}renderCart()}
+async function loadPaymentStatus(){try{const r=await fetch('/api/store-status',{cache:'no-store'});if(!r.ok)throw Error();const data=await r.json();state.paymentEnabled=data.checkoutEnabled===true;state.shippingCents=Number.isSafeInteger(data.shippingCents)&&data.shippingCents>=0?data.shippingCents:null}catch{state.paymentEnabled=false;state.shippingCents=null} $('storeBanner').textContent=state.paymentEnabled?'Fútbol de todos los rincones · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents)):'Fútbol de todos los rincones · Tienda en preparación';$('storeFooterStatus').textContent=state.paymentEnabled?'Compra segura con Stripe · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents)):'La tienda está en preparación. Los pedidos todavía no están habilitados.';renderCart();if(state.items.length)render()}
 loadPaymentStatus();
 
 async function showPaymentResult(){
