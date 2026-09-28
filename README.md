@@ -10,4 +10,8 @@ En Supabase → Authentication → URL Configuration configura el Site URL como 
 
 ## Asistente de la tienda
 
-La burbuja de ayuda utiliza `/api/chat`. Configura `OPENAI_API_KEY` en las variables de entorno privadas de Vercel para activar las respuestas de IA y despliega de nuevo. `OPENAI_CHAT_MODEL` permite sustituir `gpt-4.1-mini`. La clave nunca se envía al navegador. Si falta, el chat responde solo las preguntas frecuentes incluidas en el servidor e indica que la IA no está disponible para otras consultas. Los productos consultados son una vista previa: no se confirma disponibilidad. No se guardan las conversaciones en el proyecto; la solicitud al proveedor usa `store: false`.
+La burbuja de ayuda utiliza `/api/chat`. Si la conexión con el proveedor no está configurada, responde solo las preguntas frecuentes incluidas en el servidor e indica que la IA no está disponible para otras consultas. Los productos consultados son una vista previa: no se confirma disponibilidad. No se guardan las conversaciones en el proyecto.
+
+### Cloudflare Workers AI
+
+El chat usa Cloudflare cuando `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_AI_API_TOKEN` están configuradas en el entorno Production de Vercel. Usa el modelo `@cf/meta/llama-3.1-8b-instruct-fp8-fast` y el endpoint Chat Completions de Workers AI. Crea el token desde Cloudflare → Workers AI → Use REST API → Create a Workers AI API Token y copia el Account ID desde esa misma página. Redepliega el proyecto para aplicar las variables. Si falta una variable o Cloudflare da error, el chat responde preguntas frecuentes. El chat ya no realiza solicitudes a OpenAI; conviene eliminar `OPENAI_API_KEY` de Vercel cuando se confirme el funcionamiento de Cloudflare.
