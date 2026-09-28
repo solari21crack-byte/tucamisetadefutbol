@@ -1,1 +1,1 @@
-{"version":2,"functions":{"api/checkout.js":{"includeFiles":"public/catalogo/**"}}}
+{"version":2,"functions":{"api/checkout.js":{"includeFiles":"public/catalogo/**"},"api/paypal-capture.js":{"includeFiles":"public/catalogo/**"}}}

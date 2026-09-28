@@ -95,34 +95,35 @@ function renderCart(){
   $('total').textContent='Productos: '+euro(subtotal)+(lines.length && state.shippingCents!==null?' · Envío a España: '+euro(state.shippingCents)+' · Total: '+euro(subtotal+state.shippingCents)+' · Entrega estimada: 7 días laborables':' · Envío confirmado al pagar');
   const allowed=state.paymentEnabled&&lines.length>0&&lines.every(({p,v})=>p.active&&v.available);
   $('payButton').disabled=!allowed;
-  $('payButton').textContent=state.paymentEnabled?'Ir al pago seguro':'Pagos disponibles próximamente';
+  $('payButton').textContent=state.paymentEnabled?'Pagar con PayPal':'Pagos disponibles próximamente';
 }
 $('cartItems').addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(!b)return;state.cart.splice(Number(b.dataset.remove),1);renderCart()});
 $('payButton').addEventListener('click',async()=>{
   $('payButton').disabled=true;$('checkoutMessage').textContent='Preparando el pago…';
-  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.cart})});const data=await r.json();if(!r.ok)throw Error(data.error||'No se pudo iniciar el pago');const url=new URL(data.url);if(url.protocol!=='https:'||url.hostname!=='checkout.stripe.com')throw Error('Respuesta de pago no válida');location.assign(url.href)}
+  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:state.cart})});const data=await r.json();if(!r.ok)throw Error(data.error||'No se pudo iniciar el pago');const url=new URL(data.url);if(url.protocol!=='https:'||!['www.paypal.com','www.sandbox.paypal.com'].includes(url.hostname))throw Error('Respuesta de pago no válida');location.assign(url.href)}
   catch(e){$('checkoutMessage').textContent=e.message;renderCart()}
 });
-async function loadPaymentStatus(){try{const r=await fetch('/api/store-status',{cache:'no-store'});if(!r.ok)throw Error();const data=await r.json();state.paymentEnabled=data.checkoutEnabled===true;state.shippingCents=Number.isSafeInteger(data.shippingCents)&&data.shippingCents>=0?data.shippingCents:null}catch{state.paymentEnabled=false;state.shippingCents=null} $('storeBanner').textContent=state.paymentEnabled?'Fútbol de todos los rincones · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents))+' · Entrega estimada: 7 días laborables':'Fútbol de todos los rincones · Entrega estimada: 7 días laborables · Tienda en preparación';$('storeFooterStatus').textContent=state.paymentEnabled?'Compra segura con Stripe · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents))+' · Entrega estimada: 7 días laborables':'La tienda está en preparación. Los pedidos todavía no están habilitados.';renderCart();if(state.items.length)render()}
+async function loadPaymentStatus(){try{const r=await fetch('/api/store-status',{cache:'no-store'});if(!r.ok)throw Error();const data=await r.json();state.paymentEnabled=data.checkoutEnabled===true;state.shippingCents=Number.isSafeInteger(data.shippingCents)&&data.shippingCents>=0?data.shippingCents:null}catch{state.paymentEnabled=false;state.shippingCents=null} $('storeBanner').textContent=state.paymentEnabled?'Fútbol de todos los rincones · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents))+' · Entrega estimada: 7 días laborables':'Fútbol de todos los rincones · Entrega estimada: 7 días laborables · Tienda en preparación';$('storeFooterStatus').textContent=state.paymentEnabled?'Compra segura con PayPal · Envío a España '+(state.shippingCents===null?'calculado al pagar':euro(state.shippingCents))+' · Entrega estimada: 7 días laborables':'La tienda está en preparación. Los pedidos todavía no están habilitados.';renderCart();if(state.items.length)render()}
 loadPaymentStatus();
 
 async function showPaymentResult(){
   const params=new URLSearchParams(location.search);
   const result=params.get('pago');
-  if(result!=='recibido'&&result!=='cancelado')return;
+  if(result!=='aprobado'&&result!=='cancelado')return;
   const notice=$('paymentNotice');
   notice.hidden=false;
   notice.textContent=result==='cancelado'?'Pago cancelado. No se ha realizado ningún cargo.':'Comprobando el pago…';
-  if(result==='recibido'){
+  if(result==='aprobado'){
     try{
-      const id=params.get('session_id')||'';
-      const response=await fetch('/api/payment-status?session_id='+encodeURIComponent(id),{cache:'no-store'});
-      if(!response.ok)throw Error();
+      const id=params.get('token')||'';
+      const response=await fetch('/api/paypal-capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id})});
       const status=await response.json();
-      notice.textContent=status.paid?'Pago confirmado. Estamos registrando tu pedido.':status.pending?'El pago está pendiente de confirmación.':'El pago aún no está confirmado.';
-    }catch{notice.textContent='No pudimos comprobar el pago. Contacta con la tienda antes de repetirlo.'}
+      if(!response.ok)throw Error(status.error||'No pudimos comprobar el pago.');
+      notice.textContent=status.paid&&status.recorded?'Pago confirmado y pedido registrado.':status.paid?'Pago confirmado en PayPal. Estamos revisando el registro del pedido. No repitas el pago.':'El pago aún no está confirmado.';
+      if(status.paid&&status.recorded)history.replaceState(null,'',location.pathname+location.hash);
+    }catch(error){notice.textContent=error.message+' No repitas el pago; revisa tu actividad en PayPal o contacta con la tienda.'}
   }
-  history.replaceState(null,'',location.pathname+location.hash);
+  if(result==='cancelado')history.replaceState(null,'',location.pathname+location.hash);
 }
 showPaymentResult();
 

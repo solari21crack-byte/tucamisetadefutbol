@@ -1,17 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {randomUUID} = require('node:crypto');
-
-const json = (res, code, data) => res.status(code).setHeader('Cache-Control', 'no-store').json(data);
-const ready = () => process.env.STORE_CHECKOUT_ENABLED === 'true' &&
-  !!process.env.STRIPE_SECRET_KEY && !!process.env.STRIPE_WEBHOOK_SECRET &&
-  !!process.env.SUPABASE_URL && !!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) &&
-  /^\d+$/.test(process.env.SHIPPING_EUR_CENTS || '') &&
-  /^https:\/\/[^/]+$/.test(process.env.PUBLIC_BASE_URL || '');
+const {ready, request, euros, json} = require('./paypal');
 
 function productById(id) {
   if (!/^\d{6,20}$/.test(id)) return null;
-  // The public product data is bundled with this function by vercel.json.
   const dir = path.join(process.cwd(), 'public', 'catalogo');
   for (let n = 1; n <= 17; n++) {
     const products = JSON.parse(fs.readFileSync(path.join(dir, String(n).padStart(2, '0') + '.json'), 'utf8'));
@@ -21,53 +14,74 @@ function productById(id) {
   return null;
 }
 
-module.exports = async function checkout(req, res) {
-  if (req.method !== 'POST') return json(res, 405, {error:'Método no permitido'});
-  if (!ready()) return json(res, 503, {error:'Los pagos aún no están habilitados'});
-  const origin = req.headers.origin;
-  if (origin && origin !== process.env.PUBLIC_BASE_URL) return json(res, 403, {error:'Origen no permitido'});
-  const items = req.body?.items;
-  if (!Array.isArray(items) || items.length < 1 || items.length > 10) return json(res, 400, {error:'Cesta no válida'});
-  const params = new URLSearchParams();
-  params.set('mode', 'payment');
-  params.set('success_url', process.env.PUBLIC_BASE_URL + '/?pago=recibido&session_id={CHECKOUT_SESSION_ID}');
-  params.set('cancel_url', process.env.PUBLIC_BASE_URL + '/?pago=cancelado');
-  params.set('billing_address_collection', 'required');
-  params.set('shipping_address_collection[allowed_countries][0]', 'ES');
-  params.set('shipping_options[0][shipping_rate_data][type]', 'fixed_amount');
-  params.set('shipping_options[0][shipping_rate_data][fixed_amount][currency]', 'eur');
-  params.set('shipping_options[0][shipping_rate_data][fixed_amount][amount]', process.env.SHIPPING_EUR_CENTS);
-  params.set('shipping_options[0][shipping_rate_data][display_name]', 'Envío estándar · 7 días laborables');
+function resolveCart(items) {
+  if (!Array.isArray(items) || items.length < 1 || items.length > 10) throw Error('Cesta no válida');
   const resolved = [];
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  let subtotal = 0;
+  for (const item of items) {
     const qty = Number(item?.quantity);
-    if (!item || typeof item.productId !== 'string' || typeof item.variantId !== 'string' ||
-        !Number.isSafeInteger(qty) || qty < 1 || qty > 5) return json(res, 400, {error:'Cantidad o variante inválida'});
+    if (typeof item?.productId !== 'string' || typeof item?.variantId !== 'string' ||
+        !Number.isSafeInteger(qty) || qty < 1 || qty > 5) throw Error('Cantidad o variante inválida');
     const product = productById(item.productId);
     const variant = product?.variants.find(v => v.id === item.variantId);
     if (!product?.active || !variant?.available || !Number.isSafeInteger(variant.price) || variant.price < 50)
-      return json(res, 409, {error:'Producto no disponible; revisa tu cesta'});
-    resolved.push({productId:product.id,variantId:variant.id,quantity:qty});
-    const prefix = `line_items[${i}]`;
-    params.set(`${prefix}[price_data][currency]`, 'eur');
-    params.set(`${prefix}[price_data][unit_amount]`, String(variant.price));
-    params.set(`${prefix}[price_data][product_data][name]`, `${product.title} · ${variant.title}`.slice(0, 240));
-    if (/^https:\/\//.test(product.image)) params.set(`${prefix}[price_data][product_data][images][0]`, product.image);
-    params.set(`${prefix}[quantity]`, String(qty));
+      throw Error('Producto no disponible; revisa tu cesta');
+    subtotal += variant.price * qty;
+    resolved.push({product, variant, quantity:qty});
   }
-  const cart = JSON.stringify(resolved);
-  if (cart.length > 480) return json(res, 400, {error:'Divide el pedido en dos cestas'});
-  params.set('metadata[cart]', cart);
+  if (!Number.isSafeInteger(subtotal)) throw Error('Cesta no válida');
+  return {resolved, subtotal};
+}
+
+module.exports = async function checkout(req, res) {
+  if (req.method !== 'POST') return json(res, 405, {error:'Método no permitido'});
+  if (!ready()) return json(res, 503, {error:'Los pagos aún no están habilitados'});
+  if (req.headers.origin && req.headers.origin !== process.env.PUBLIC_BASE_URL)
+    return json(res, 403, {error:'Origen no permitido'});
+  let cart;
+  try { cart = resolveCart(req.body?.items); }
+  catch (error) { return json(res, 409, {error:error.message}); }
+
+  const shipping = Number(process.env.SHIPPING_EUR_CENTS);
+  const amount = {currency_code:'EUR',value:euros(cart.subtotal + shipping),breakdown:{
+    item_total:{currency_code:'EUR',value:euros(cart.subtotal)},
+    shipping:{currency_code:'EUR',value:euros(shipping)}
+  }};
+  const payload = {
+    intent:'CAPTURE',
+    purchase_units:[{
+      custom_id:'TCDF-'+randomUUID(),
+      description:'Camisetas y pantalones · entrega estimada: 7 días laborables',
+      amount,
+      items:cart.resolved.map(({product,variant,quantity})=>({
+        name:`${product.title} · ${variant.title}`.slice(0,127),
+        sku:`${product.id}:${variant.id}`,
+        unit_amount:{currency_code:'EUR',value:euros(variant.price)},
+        quantity:String(quantity),category:'PHYSICAL_GOODS'
+      }))
+    }],
+    payment_source:{paypal:{experience_context:{
+      brand_name:'Tu Camiseta de Fútbol',locale:'es-ES',user_action:'PAY_NOW',
+      shipping_preference:'GET_FROM_FILE',
+      return_url:process.env.PUBLIC_BASE_URL+'/?pago=aprobado',
+      cancel_url:process.env.PUBLIC_BASE_URL+'/?pago=cancelado'
+    }}}
+  };
   try {
-    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method:'POST',headers:{Authorization:`Bearer ${process.env.STRIPE_SECRET_KEY}`,
-        'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':randomUUID()},body:params
+    const {response, data} = await request('/v2/checkout/orders',{
+      method:'POST',headers:{'PayPal-Request-Id':randomUUID()},body:JSON.stringify(payload)
     });
-    const session = await response.json();
-    if (!response.ok || !session.url) return json(res, 502, {error:'No se pudo iniciar el pago'});
-    return json(res, 200, {url:session.url});
-  } catch { return json(res, 502, {error:'Stripe no está disponible'}); }
+    const approval = data?.links?.find(link=>link.rel==='payer-action' || link.rel==='approve')?.href;
+    if (!response.ok || !data?.id || !approval) return json(res, 502, {error:'No se pudo iniciar el pago con PayPal'});
+    const url = new URL(approval);
+    if (url.protocol !== 'https:' || !['www.paypal.com','www.sandbox.paypal.com'].includes(url.hostname))
+      return json(res, 502, {error:'Respuesta de PayPal no válida'});
+    return json(res, 200, {url:url.href});
+  } catch (error) {
+    console.error('PayPal order creation failed', error?.name || 'unknown');
+    return json(res, 502, {error:'PayPal no está disponible en este momento'});
+  }
 };
 module.exports.ready = ready;
 module.exports.productById = productById;
+module.exports.resolveCart = resolveCart;
